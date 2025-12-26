@@ -109,21 +109,31 @@
             100% { opacity: .2; }
         }
 
-        .action-chip {
-            display: inline-flex;
-            align-items: center;
-            background: #3b82f620;
-            border: 1px solid #3b82f650;
+        .action-status {
+            font-size: 0.7rem;
             color: #60a5fa;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            margin-top: 5px;
-            cursor: pointer;
+            margin-bottom: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .action-chip:hover {
-            background: #3b82f640;
+        .link-preview {
+            display: block;
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+            text-decoration: none;
+            color: #60a5fa;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+
+        .link-preview:hover {
+            background: #3f3f46;
         }
     </style>
 </head>
@@ -134,26 +144,28 @@
         <div class="main-view" id="mainView">
             <div class="url-bar">
                 <div class="flex gap-2">
-                    <div class="w-3 h-3 rounded-full bg-zinc-700"></div>
-                    <div class="w-3 h-3 rounded-full bg-zinc-700"></div>
-                    <div class="w-3 h-3 rounded-full bg-zinc-700"></div>
+                    <div class="w-3 h-3 rounded-full bg-red-500/30"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500/30"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500/30"></div>
                 </div>
                 
                 <div class="flex items-center gap-4 text-zinc-400 mx-4">
                     <button class="hover:text-white" onclick="document.getElementById('browserFrame').contentWindow.history.back()">←</button>
                     <button class="hover:text-white" onclick="document.getElementById('browserFrame').contentWindow.history.forward()">→</button>
+                    <button class="hover:text-white" onclick="location.reload()">↻</button>
                 </div>
 
                 <div class="flex-grow bg-zinc-900 border border-zinc-700 rounded-full px-4 py-1 flex items-center gap-2">
-                    <span class="text-xs text-zinc-500">🔒</span>
-                    <input type="text" id="addressInput" value="https://www.google.com/search?q=Nix+Browser" class="bg-transparent border-none outline-none text-sm w-full text-zinc-200">
+                    <span class="text-xs text-zinc-500">nix://</span>
+                    <input type="text" id="addressInput" value="https://www.wikipedia.org" class="bg-transparent border-none outline-none text-sm w-full text-zinc-200">
                 </div>
 
                 <button id="toggleNix" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-md text-sm text-white flex items-center gap-2 transition-all">
-                    <span>✧</span> Nix 2
+                    <span>✧</span> Nix 2 Intelligence
                 </button>
             </div>
 
+            <!-- Browser Viewport -->
             <iframe id="browserFrame" src="https://www.wikipedia.org" class="web-content"></iframe>
         </div>
 
@@ -162,29 +174,26 @@
             <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900">
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                    <h2 class="font-bold text-xs uppercase tracking-widest text-zinc-400">Nix 2 Core</h2>
+                    <h2 class="font-bold text-xs uppercase tracking-widest text-zinc-400">Nix 2 Engine</h2>
                 </div>
                 <button id="closeSidebar" class="text-zinc-500 hover:text-white">&times;</button>
             </div>
 
             <div class="chat-messages" id="chatMessages">
                 <div class="message ai-message">
-                    Hello, I am **Nix 2**. I am your browser's neural engine. 
+                    Hello! I'm **Nix 2**. I can actively control this browser. 
                     <br><br>
-                    I can help you search the web, summarize pages, or navigate to specific links. Just ask!
+                    Try asking: *"Go to YouTube"*, *"Search for SpaceX"*, or *"What am I looking at?"*
                 </div>
             </div>
 
             <div class="p-4 bg-zinc-900 border-t border-zinc-800">
+                <div id="aiActionStatus" class="hidden h-6"></div>
                 <div class="relative">
-                    <textarea id="userInput" placeholder="Search or ask Nix..." class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 resize-none h-24 text-zinc-100"></textarea>
+                    <textarea id="userInput" placeholder="Ask Nix to do something..." class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 resize-none h-24 text-zinc-100"></textarea>
                     <button id="sendBtn" class="absolute bottom-3 right-3 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors">
                         Execute
                     </button>
-                </div>
-                <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
-                    <button class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-1 rounded hover:bg-zinc-700 whitespace-nowrap" onclick="quickAction('Search for latest AI news')">Latest News</button>
-                    <button class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-1 rounded hover:bg-zinc-700 whitespace-nowrap" onclick="quickAction('Go to GitHub')">GitHub</button>
                 </div>
             </div>
         </div>
@@ -202,6 +211,7 @@
         const sendBtn = document.getElementById('sendBtn');
         const addressInput = document.getElementById('addressInput');
         const browserFrame = document.getElementById('browserFrame');
+        const aiStatus = document.getElementById('aiActionStatus');
 
         const toggleSidebar = () => sidebar.classList.toggle('closed');
         toggleBtn.addEventListener('click', toggleSidebar);
@@ -209,21 +219,30 @@
 
         function navigateTo(url) {
             let target = url;
-            if (!target.startsWith('http')) target = 'https://' + target;
+            if (!target.startsWith('http')) {
+                if (target.includes('.') && !target.includes(' ')) {
+                    target = 'https://' + target;
+                } else {
+                    target = `https://www.google.com/search?q=${encodeURIComponent(target)}`;
+                }
+            }
             addressInput.value = target;
             browserFrame.src = target;
+            
+            showAction(`Navigating to: ${target.substring(0, 30)}...`);
+        }
+
+        function showAction(text) {
+            aiStatus.innerHTML = `<div class="action-status"><span class="animate-spin text-blue-500">↻</span> ${text}</div>`;
+            aiStatus.classList.remove('hidden');
+            setTimeout(() => aiStatus.classList.add('hidden'), 3000);
         }
 
         addressInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') navigateTo(addressInput.value);
         });
 
-        function quickAction(text) {
-            userInput.value = text;
-            sendMessage();
-        }
-
-        async function fetchWithRetry(url, options, maxRetries = 3) {
+        async function fetchWithRetry(url, options, maxRetries = 5) {
             let delay = 1000;
             for (let i = 0; i < maxRetries; i++) {
                 try {
@@ -246,7 +265,7 @@
             userInput.value = '';
 
             const placeholderId = 'ai-' + Date.now();
-            addMessage('Processing logic...', 'ai', placeholderId, true);
+            addMessage('Analysing browser state...', 'ai', placeholderId, true);
 
             try {
                 const currentUrl = browserFrame.src;
@@ -262,17 +281,20 @@
                         messages: [
                             { 
                                 role: "system", 
-                                content: `You are Nix 2, the AI browser core by Codenix.
-                                Current Page: ${currentUrl}
+                                content: `You are Nix 2, the AI core of a futuristic browser.
+                                [BROWSER_CONTEXT]
+                                URL: ${currentUrl}
+                                Capability: You can navigate, search, and analyze.
                                 
-                                CRITICAL: If the user wants to search or visit a site, include the URL in your response within square brackets like [https://example.com]. 
-                                Example: "I will search for that. [https://www.google.com/search?q=query]"
-                                Keep responses concise.` 
+                                [ACTION_PROTOCOL]
+                                1. If you suggest a website or search, put the URL in double brackets like [[https://example.com]].
+                                2. If you are doing a browser action (like searching), start your response with "ACTION: [description]".
+                                3. Keep explanations helpful but concise.
+                                4. You can 'see' the current URL and help the user interact with it.` 
                             },
                             { role: "user", content: text }
                         ],
-                        temperature: 0.7,
-                        max_tokens: 500
+                        temperature: 0.6
                     })
                 });
 
@@ -281,33 +303,38 @@
 
                 if (!response || !response.ok) {
                     const errData = await response.json().catch(() => ({}));
-                    placeholder.textContent = `Error: ${errData.error?.message || 'API connection failed'}`;
+                    placeholder.textContent = `Nix Error: ${errData.error?.message || 'Connection Interrupted'}`;
                     placeholder.classList.add('text-red-400');
                     return;
                 }
                 
                 const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
+                let aiResponse = data.choices[0].message.content;
 
-                // Handle Markdown-ish formatting and URL detection
-                const urlRegex = /\[(https?:\/\/[^\s\]]+)\]/g;
-                let processedText = aiResponse.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                // Detect Actions and Links
+                const urlMatch = aiResponse.match(/\[\[(https?:\/\/[^\s\]]+)\]\]/);
                 
-                const urlsFound = [...aiResponse.matchAll(urlRegex)];
-                if (urlsFound.length > 0) {
-                    const firstUrl = urlsFound[0][1];
-                    processedText += `<div class="action-chip" onclick="navigateTo('${firstUrl}')">Navigate to Link ↗</div>`;
-                    // Auto-navigate for search/direct requests
-                    if (text.toLowerCase().includes('search') || text.toLowerCase().includes('go to')) {
-                        setTimeout(() => navigateTo(firstUrl), 1000);
+                // Highlight Bold text
+                let formattedText = aiResponse.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                
+                // Convert [[url]] to a clickable/auto-executing link
+                if (urlMatch) {
+                    const foundUrl = urlMatch[1];
+                    formattedText = formattedText.replace(/\[\[.*?\]\]/g, `<a href="#" class="link-preview" onclick="navigateTo('${foundUrl}'); return false;">Open: ${foundUrl} ↗</a>`);
+                    
+                    // Direct command execution: If user asked to search/go, auto-navigate
+                    const triggers = ['search', 'go to', 'open', 'visit', 'find'];
+                    if (triggers.some(t => text.toLowerCase().includes(t))) {
+                        showAction("Auto-executing request...");
+                        setTimeout(() => navigateTo(foundUrl), 800);
                     }
                 }
 
-                placeholder.innerHTML = processedText.replace(urlRegex, '');
+                placeholder.innerHTML = formattedText;
 
             } catch (error) {
                 const placeholder = document.getElementById(placeholderId);
-                placeholder.textContent = "Nix 2 core timeout. Check network status.";
+                placeholder.textContent = "Connectivity lost. Ensure LongCat API is reachable.";
                 placeholder.classList.add('text-red-400');
                 placeholder.classList.remove('typing-indicator');
             }

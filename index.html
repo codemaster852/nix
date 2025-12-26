@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nix Browser | Powered by Nix 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono&display=swap');
+        
+        :root {
+            --nix-bg: #0a0a0c;
+            --nix-accent: #3b82f6;
+            --nix-border: #27272a;
+        }
+
+        body {
+            background-color: var(--nix-bg);
+            color: #e4e4e7;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .browser-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .main-view {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .url-bar {
+            background: #18181b;
+            border-bottom: 1px solid var(--nix-border);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nix-sidebar {
+            width: 380px;
+            background: #111114;
+            border-left: 1px solid var(--nix-border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, width 0.3s ease;
+            position: relative;
+        }
+
+        .nix-sidebar.closed {
+            width: 0;
+            transform: translateX(100%);
+            overflow: hidden;
+            border-left: none;
+        }
+
+        .web-content {
+            flex-grow: 1;
+            background: white;
+            border: none;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            max-width: 90%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: var(--nix-accent);
+            color: white;
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background: #1c1c1f;
+            color: #e4e4e7;
+            border: 1px solid #3f3f46;
+        }
+
+        .typing-indicator::after {
+            content: "...";
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: .2; }
+            20% { opacity: 1; }
+            100% { opacity: .2; }
+        }
+
+        .action-chip {
+            display: inline-flex;
+            align-items: center;
+            background: #3b82f620;
+            border: 1px solid #3b82f650;
+            color: #60a5fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+
+        .action-chip:hover {
+            background: #3b82f640;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="browser-container">
+        <!-- Main Browser View -->
+        <div class="main-view" id="mainView">
+            <div class="url-bar">
+                <div class="flex gap-2">
+                    <div class="w-3 h-3 rounded-full bg-zinc-700"></div>
+                    <div class="w-3 h-3 rounded-full bg-zinc-700"></div>
+                    <div class="w-3 h-3 rounded-full bg-zinc-700"></div>
+                </div>
+                
+                <div class="flex items-center gap-4 text-zinc-400 mx-4">
+                    <button class="hover:text-white" onclick="document.getElementById('browserFrame').contentWindow.history.back()">←</button>
+                    <button class="hover:text-white" onclick="document.getElementById('browserFrame').contentWindow.history.forward()">→</button>
+                </div>
+
+                <div class="flex-grow bg-zinc-900 border border-zinc-700 rounded-full px-4 py-1 flex items-center gap-2">
+                    <span class="text-xs text-zinc-500">🔒</span>
+                    <input type="text" id="addressInput" value="https://www.google.com/search?q=Nix+Browser" class="bg-transparent border-none outline-none text-sm w-full text-zinc-200">
+                </div>
+
+                <button id="toggleNix" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-md text-sm text-white flex items-center gap-2 transition-all">
+                    <span>✧</span> Nix 2
+                </button>
+            </div>
+
+            <iframe id="browserFrame" src="https://www.wikipedia.org" class="web-content"></iframe>
+        </div>
+
+        <!-- Nix 2 AI Sidebar -->
+        <div class="nix-sidebar" id="sidebar">
+            <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                    <h2 class="font-bold text-xs uppercase tracking-widest text-zinc-400">Nix 2 Core</h2>
+                </div>
+                <button id="closeSidebar" class="text-zinc-500 hover:text-white">&times;</button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai-message">
+                    Hello, I am **Nix 2**. I am your browser's neural engine. 
+                    <br><br>
+                    I can help you search the web, summarize pages, or navigate to specific links. Just ask!
+                </div>
+            </div>
+
+            <div class="p-4 bg-zinc-900 border-t border-zinc-800">
+                <div class="relative">
+                    <textarea id="userInput" placeholder="Search or ask Nix..." class="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 resize-none h-24 text-zinc-100"></textarea>
+                    <button id="sendBtn" class="absolute bottom-3 right-3 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors">
+                        Execute
+                    </button>
+                </div>
+                <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
+                    <button class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-1 rounded hover:bg-zinc-700 whitespace-nowrap" onclick="quickAction('Search for latest AI news')">Latest News</button>
+                    <button class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-1 rounded hover:bg-zinc-700 whitespace-nowrap" onclick="quickAction('Go to GitHub')">GitHub</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'ak_26w2J55rY5wR44L3ij9Rg1dH6SR7C';
+        const BASE_URL = 'https://api.longcat.chat/openai/v1/chat/completions';
+        
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggleNix');
+        const closeBtn = document.getElementById('closeSidebar');
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const addressInput = document.getElementById('addressInput');
+        const browserFrame = document.getElementById('browserFrame');
+
+        const toggleSidebar = () => sidebar.classList.toggle('closed');
+        toggleBtn.addEventListener('click', toggleSidebar);
+        closeBtn.addEventListener('click', toggleSidebar);
+
+        function navigateTo(url) {
+            let target = url;
+            if (!target.startsWith('http')) target = 'https://' + target;
+            addressInput.value = target;
+            browserFrame.src = target;
+        }
+
+        addressInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') navigateTo(addressInput.value);
+        });
+
+        function quickAction(text) {
+            userInput.value = text;
+            sendMessage();
+        }
+
+        async function fetchWithRetry(url, options, maxRetries = 3) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return response;
+                    if (response.status === 401 || response.status === 400) return response; 
+                } catch (err) {
+                    if (i === maxRetries - 1) throw err;
+                }
+                await new Promise(r => setTimeout(r, delay));
+                delay *= 2;
+            }
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            addMessage(text, 'user');
+            userInput.value = '';
+
+            const placeholderId = 'ai-' + Date.now();
+            addMessage('Processing logic...', 'ai', placeholderId, true);
+
+            try {
+                const currentUrl = browserFrame.src;
+                
+                const response = await fetchWithRetry(BASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "LongCat-Flash-Chat",
+                        messages: [
+                            { 
+                                role: "system", 
+                                content: `You are Nix 2, the AI browser core by Codenix.
+                                Current Page: ${currentUrl}
+                                
+                                CRITICAL: If the user wants to search or visit a site, include the URL in your response within square brackets like [https://example.com]. 
+                                Example: "I will search for that. [https://www.google.com/search?q=query]"
+                                Keep responses concise.` 
+                            },
+                            { role: "user", content: text }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 500
+                    })
+                });
+
+                const placeholder = document.getElementById(placeholderId);
+                placeholder.classList.remove('typing-indicator');
+
+                if (!response || !response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    placeholder.textContent = `Error: ${errData.error?.message || 'API connection failed'}`;
+                    placeholder.classList.add('text-red-400');
+                    return;
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+
+                // Handle Markdown-ish formatting and URL detection
+                const urlRegex = /\[(https?:\/\/[^\s\]]+)\]/g;
+                let processedText = aiResponse.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                
+                const urlsFound = [...aiResponse.matchAll(urlRegex)];
+                if (urlsFound.length > 0) {
+                    const firstUrl = urlsFound[0][1];
+                    processedText += `<div class="action-chip" onclick="navigateTo('${firstUrl}')">Navigate to Link ↗</div>`;
+                    // Auto-navigate for search/direct requests
+                    if (text.toLowerCase().includes('search') || text.toLowerCase().includes('go to')) {
+                        setTimeout(() => navigateTo(firstUrl), 1000);
+                    }
+                }
+
+                placeholder.innerHTML = processedText.replace(urlRegex, '');
+
+            } catch (error) {
+                const placeholder = document.getElementById(placeholderId);
+                placeholder.textContent = "Nix 2 core timeout. Check network status.";
+                placeholder.classList.add('text-red-400');
+                placeholder.classList.remove('typing-indicator');
+            }
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addMessage(text, type, id = null, isTyping = false) {
+            const div = document.createElement('div');
+            div.className = `message ${type === 'user' ? 'user-message' : 'ai-message'}`;
+            if (isTyping) div.classList.add('typing-indicator');
+            if (id) div.id = id;
+            div.innerHTML = text;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        window.onload = () => {
+            sidebar.classList.remove('closed');
+        };
+    </script>
+</body>
+</html>
